@@ -1,22 +1,17 @@
-SELECT id, redirect FROM wp_referzilla where (link="test")
+SELECT id, redirect FROM wp_referzilla where (link="SecondLink")
 Array
 (
     [0] => stdClass Object
         (
-            [id] => 1
+            [id] => 4
             [redirect] => http://dk.kz/a/i.php?s2={REFER}_{COUNTRY}&ip={ip}
         )
 
 )
 
-SELECT redirect FROM wp_referzillaex where (id_link=1 and cn like "%AA%")
+SELECT redirect FROM wp_referzillaEx where (id_link=4 and cn="AA")
 
  Result:
 Array
 (
-    [0] => stdClass Object
-        (
-            [redirect] => http://dk.kz/a/i.php?s2={REFER}_{COUNTRY}&cn=AAAAAAA
-        )
-
 )

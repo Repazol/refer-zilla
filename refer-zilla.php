@@ -20,12 +20,18 @@ Description: Refer Zilla
     return $text;
 }
 
-function refer_zilla ($text)
-{
-  if (isset($_COOKIE["r"]))
+function refer_zilla_ref()
+{  if (isset($_COOKIE["r"]))
   {
     $ref=$_COOKIE["r"];
-  } else {$ref="Direct";}  include_once("tabgeo_country_v4.php");
+  } else {$ref="Direct";}
+  return addslashes($ref);
+
+}
+function refer_zilla ($text)
+{
+  $ref=refer_zilla_ref();
+  include_once("tabgeo_country_v4.php");
   $ip = $_SERVER['REMOTE_ADDR'];
   $country_code = tabgeo_country_v4($ip);
 
@@ -36,6 +42,7 @@ function refer_zilla ($text)
 }
 function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
   $ip = $_SERVER['REMOTE_ADDR'];
+  $ref =refer_zilla_ref();
   include_once("tabgeo_country_v4.php");
   $country_code = tabgeo_country_v4($ip);
   $r='';//print_r($query,true);
@@ -43,11 +50,12 @@ function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
   $r.=$sql."\n\r";
   $d=$wpdb->get_results($sql);
   if (isset($d[0])) {
+        $id=$d[0]->id;
+        $wpdb->query('insert into '.$ReferZillaTable.'stat (id_link, cn, ip, ref) values ('.$id.',"'.$country_code.'","'.$ip.'","'.$ref.'")');
         $r.=print_r($d,true)."\n\r";
         //file_put_contents("wp-content/plugins/refer-zilla/fileEx.txt", print_r($d,true));
-        $id=$d[0]->id;
         $l=refer_zilla ($d[0]->redirect);
-        $sql='SELECT redirect FROM '.$ReferZillaTable.'ex where (id_link='.$id.' and cn like "%'.$country_code.'%")';
+        $sql='SELECT redirect FROM '.$ReferZillaTable.'Ex where (id_link='.$id.' and cn="'.$country_code.'")';
         $r.=$sql."\n\r";
         $d=$wpdb->get_results($sql);
         $r.="\n\r Result:\n\r".print_r($d,true);
@@ -55,6 +63,11 @@ function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
           $l=refer_zilla ($d[0]->redirect);
         }
         file_put_contents("wp-content/plugins/refer-zilla/file.txt", $r);
+        foreach($_GET as $k =>$v)
+        {
+          $l.='&';
+          $l.=$k.'='.$v;
+        }
 
 	    header('location: '.$l);
 	    die ();
@@ -74,11 +87,21 @@ function mt_toplevel_page() {	global $ZillaName;
 	$r=ReferZillaManager();
     echo $r;
 }
+function mt_manage_stat() {
+	global $ZillaName;
+	include_once("refer-zilla-statistic.php");
+	$r=refer_zilla_stat();
+    echo $r;
+}
+
 function mt_add_pages() {
     // Add a new submenu under Options:
-    add_options_page('Refer Zilla', 'Refer Zilla', 8, 'testoptions', 'mt_options_page');
-    add_management_page('Refer Zilla Manage', 'Refer Zilla Manage', 8, 'testmanage', 'mt_manage_page');
+    //add_options_page('Refer Zilla', 'Refer Zilla', 8, 'testoptions', 'mt_options_page');
+    //add_management_page('Refer Zilla Manage', 'Refer Zilla Manage', 8, 'testmanage', 'mt_manage_page');
     add_menu_page('Refer Zilla', 'Refer Zilla', 8, __FILE__, 'mt_toplevel_page');
+    add_submenu_page(__FILE__, 'Statistics', 'Statistics', 8, 'refer-zillla-statistic', 'mt_manage_stat');
+    //add_submenu_page( 'Refer Zilla', 'Statistics', 'Statistics', 8, __FILE__, 'mt_manage_stat' );
+
 
     // Add a new submenu under Manage:
     //add_management_page('Test Manage', 'Test Manage', 8, 'testmanage', 'mt_manage_page');
@@ -93,6 +116,7 @@ return $country_code;
 function ReferZilla_activate() {
   global $ReferZillaTable,$wpdb;
   $ReferZillaTableEx=$ReferZillaTable.'Ex';
+  $ReferZillaTableStat=$ReferZillaTable.'stat';
   if($wpdb->get_var("SHOW TABLES LIKE '$ReferZillaTable'") != $ReferZillaTable) {  	$sql='CREATE TABLE `'.$ReferZillaTable.'` (
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 	`link` VARCHAR(200) NULL DEFAULT NULL,
@@ -114,12 +138,26 @@ function ReferZilla_activate() {
 	`cn` CHAR(2) NOT NULL DEFAULT "--",
 	`redirect` TEXT NOT NULL,
 	PRIMARY KEY (`id`),
-	INDEX `idl` (`id_link`)
-)';
-
+	INDEX `idl` (`id_link`))';
    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
    dbDelta($sql);
    }
+
+  if($wpdb->get_var("SHOW TABLES LIKE '$ReferZillaTableStat'") != $ReferZillaTableStat) {
+  	$sql='CREATE TABLE `'.$ReferZillaTableStat.'` (
+	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+	`dt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	`id_link` BIGINT(20) NOT NULL DEFAULT "-1",
+	`cn` CHAR(2) NOT NULL DEFAULT "--",
+	`ip` VARCHAR(50) NOT NULL DEFAULT "0.0.0.0",
+	`ref` VARCHAR(150) NOT NULL DEFAULT "Direct",
+	PRIMARY KEY (`id`),
+	INDEX `dat` (`dt`),
+	INDEX `idl` (`id_link`))';
+   require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+   dbDelta($sql);
+   }
+
    add_option( "RefZilla_db_version", "1.0" );
 }
 global $ZillaName, $ReferZillaTable,$wpdb;

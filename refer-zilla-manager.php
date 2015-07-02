@@ -12,7 +12,9 @@ function ReferZillaManagerList()
 {  global $ZillaName, $wpdb,$ReferZillaTable;
   $paged=$_SERVER['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'];
   $r='<a href="'.$paged.'&do=editlink&id=-1">Create link...</a>';
-  $links = $wpdb->get_results("SELECT ID, link, redirect FROM $ReferZillaTable");
+  $ReferZillaTableStat=$ReferZillaTable.'stat';
+  $sql="SELECT ID, link, redirect FROM $ReferZillaTable";
+  $links = $wpdb->get_results($sql);
   $r.="<h3>Links list...</h3>";
   $r.='<style>
    table, th, td {
@@ -76,7 +78,7 @@ function ReferZillaGenerateCountryForm($id,$id_c, $cn="", $rd="")
   if ($id_c==-1) {$sub='Create';} else {$sub='Update';}
   $r.='<tr><td>'.ReferZillaCountryListCombo($cn).'</td><td><input style="width:100%;" name="redirect" type="text" value="'.$rd.'"></td><td><input type="submit" value="'.$sub.'"></td></form>';
 
-  if ($id_c!=-1) {  	$paged=$_SERVER['PHP_SELF'].'?page=refer-zilla/refer-zilla.php';  	$r.='<td><a href="'.$paged.'&id='.$id.'&id_c='.$id_c.'&cn='.$cn.'&do=deletecnt"><button>Delete</button></a></td>';
+  if ($id_c!=-1) {  	$paged=$_SERVER['PHP_SELF'].'?page=refer-zilla/refer-zilla.php';  	$r.='<td><a href="'.$paged.'&id='.$id.'&id_c='.$id_c.'&cn='.$cn.'&do=deletecnt">Delete</a></td>';
   	}
   $r.='</tr>';
 
@@ -140,9 +142,8 @@ function ReferZillaManagerEdit ($id)
   $r.='<table style="width:80%;">';
   $r.='<tr><td style="width:80px;">Link:</td><td><input style="width:80%;" name="link" type="text" value="'.$dt['link'].'"></td></tr>';
   $r.='<tr><td>Redirect to:</td><td><input style="width:80%;" name="redirect" type="text" value="'.$dt['redirect'].'"> *Default</td></tr>';
+  $r.='<tr><td><input type="submit" value="Save"></td></form><td><a href="'.$_SERVER['PHP_SELF'].'?page=refer-zilla%2Frefer-zilla.php">Cancel</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Code {REFER} - From where the user came, {COUNTRY} - User country, {IP} - User ip</td></tr>';
   $r.='</table>';
-  $r.='<input type="submit" value="Save">&nbsp;&nbsp;&nbsp;&nbsp; <a href="'.$_SERVER['PHP_SELF'].'?page=refer-zilla%2Frefer-zilla.php"><button>Cancel</button></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Code {REFER} - From where the user came, {COUNTRY} - User country, {IP} - User ip';
-  $r.='</form>';
   $r.=ReferZillaCountryList ($id);
   return $r;
 }
@@ -199,7 +200,7 @@ function ReferZillaManagerDeleteok ($id)
 {
   global $wpdb,$ReferZillaTable;
   $r='Link "'.GetPostGetParam('l').'" deleted.<br>';
-  $ReferZillaTableex=$ReferZillaTable.'ex';
+  $ReferZillaTableex=$ReferZillaTable.'Ex';
   $wpdb->query("delete FROM $ReferZillaTableex where (id_link=$id)");
   $wpdb->query("delete FROM $ReferZillaTable where (id=$id)");
 
@@ -226,7 +227,7 @@ function ReferZillaManagerDelcntok($id)
   $paged=str_ireplace('do=deletecnt','do=deletecntok&cn='.$cn,$paged);
   $pagedno=str_ireplace('do=deletecntok','do=editlink',$paged);
 
-  $ReferZillaTableex=$ReferZillaTable.'ex';
+  $ReferZillaTableex=$ReferZillaTable.'Ex';
   $wpdb->query("delete FROM $ReferZillaTableex where (id=$id_c)");
 
   return $r;
@@ -236,7 +237,7 @@ function ReferZillaManager ()
   global $ZillaName, $wpdb,$ReferZillaTable;
   $r='<h2>'.$ZillaName.' Manager</h2>';
   $do=GetPostGetParam('do');
-  $id=GetPostGetParam('id');
+  $id=GetPostGetParam('id')+0;
   switch ($do) {    case 'linkpostcountry': {$r.=ReferZillaPostCountry($id);$r.=ReferZillaManagerEdit ($id);break;}
     case 'editlink': {$r.=ReferZillaManagerEdit ($id);break;}
     case 'deletelink':	{$r.=ReferZillaManagerDelete ($id);break;}
