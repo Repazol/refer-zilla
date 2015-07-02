@@ -25,18 +25,37 @@ function refer_zilla ($text)
   if (isset($_COOKIE["r"]))
   {
     $ref=$_COOKIE["r"];
-  } else {$ref="Direct";}  $text=str_replace("%REFER%",$ref,$text);
+  } else {$ref="Direct";}  include_once("tabgeo_country_v4.php");
+  $ip = $_SERVER['REMOTE_ADDR'];
+  $country_code = tabgeo_country_v4($ip);
+
+  $text=str_ireplace("{REFER}",$ref,$text);
+  $text=str_ireplace("{COUNTRY}",$country_code,$text);
+  $text=str_ireplace("{IP}",$ip,$text);
   return $text;
 }
 function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
-  $r=print_r($query,true);
-  $sql='SELECT redirect FROM '.$ReferZillaTable.' where (link="'.$query->request.'")';
-  $r.="\n\r".$sql;
-  file_put_contents("file.txt", $r);
+  $ip = $_SERVER['REMOTE_ADDR'];
+  include_once("tabgeo_country_v4.php");
+  $country_code = tabgeo_country_v4($ip);
+  $r='';//print_r($query,true);
+  $sql='SELECT id, redirect FROM '.$ReferZillaTable.' where (link="'.$query->request.'")';
+  $r.=$sql."\n\r";
   $d=$wpdb->get_results($sql);
   if (isset($d[0])) {
-        file_put_contents("fileEx.txt", print_r($d,true));
+        $r.=print_r($d,true)."\n\r";
+        //file_put_contents("wp-content/plugins/refer-zilla/fileEx.txt", print_r($d,true));
+        $id=$d[0]->id;
         $l=refer_zilla ($d[0]->redirect);
+        $sql='SELECT redirect FROM '.$ReferZillaTable.'ex where (id_link='.$id.' and cn like "%'.$country_code.'%")';
+        $r.=$sql."\n\r";
+        $d=$wpdb->get_results($sql);
+        $r.="\n\r Result:\n\r".print_r($d,true);
+        if (isset($d[0])) {
+          $l=refer_zilla ($d[0]->redirect);
+        }
+        file_put_contents("wp-content/plugins/refer-zilla/file.txt", $r);
+
 	    header('location: '.$l);
 	    die ();
 	  }    return $query;

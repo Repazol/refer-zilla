@@ -1,0 +1,22 @@
+SELECT id, redirect FROM wp_referzilla where (link="test")
+Array
+(
+    [0] => stdClass Object
+        (
+            [id] => 1
+            [redirect] => http://dk.kz/a/i.php?s2={REFER}_{COUNTRY}&ip={ip}
+        )
+
+)
+
+SELECT redirect FROM wp_referzillaex where (id_link=1 and cn like "%AA%")
+
+ Result:
+Array
+(
+    [0] => stdClass Object
+        (
+            [redirect] => http://dk.kz/a/i.php?s2={REFER}_{COUNTRY}&cn=AAAAAAA
+        )
+
+)
