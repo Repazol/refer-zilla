@@ -42,6 +42,7 @@ function refer_zilla ($text)
 }
 function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
   $ip = $_SERVER['REMOTE_ADDR'];
+  $agent = $_SERVER['HTTP_USER_AGENT'];
   $ref =refer_zilla_ref();
   include_once("tabgeo_country_v4.php");
   $country_code = tabgeo_country_v4($ip);
@@ -51,7 +52,7 @@ function MyTest( $query ) {  global $ZillaName,$wpdb,$ReferZillaTable;
   $d=$wpdb->get_results($sql);
   if (isset($d[0])) {
         $id=$d[0]->id;
-        $wpdb->query('insert into '.$ReferZillaTable.'stat (id_link, cn, ip, ref) values ('.$id.',"'.$country_code.'","'.$ip.'","'.$ref.'")');
+        $wpdb->query('insert into '.$ReferZillaTable.'stat (id_link, cn, ip, ref, agent) values ('.$id.',"'.$country_code.'","'.$ip.'","'.$ref.'","'.$agent.'")');
         $r.=print_r($d,true)."\n\r";
         //file_put_contents("wp-content/plugins/refer-zilla/fileEx.txt", print_r($d,true));
         $l=refer_zilla ($d[0]->redirect);
@@ -151,9 +152,10 @@ function ReferZilla_activate() {
 	`cn` CHAR(2) NOT NULL DEFAULT "--",
 	`ip` VARCHAR(50) NOT NULL DEFAULT "0.0.0.0",
 	`ref` VARCHAR(150) NOT NULL DEFAULT "Direct",
+	`agent` VARCHAR(100) NULL DEFAULT NULL,
 	PRIMARY KEY (`id`),
 	INDEX `dat` (`dt`),
-	INDEX `idl` (`id_link`))';
+	INDEX `idl` (`id_link`)) AUTO_INCREMENT=100';
    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
    dbDelta($sql);
    }

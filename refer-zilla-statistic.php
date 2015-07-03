@@ -45,12 +45,20 @@ function refer_zilla_stat_show($id)
   $dat = $wpdb->get_results($sql);
   $r='<h3>Cliks for `'.$dat[0]->link.'`</h3>'.$dat[0]->redirect.'<hr>';
   $r.='<table>';
-  $r.='<tr><th>Id</th><th>Time</th><th>Refer</th><th>Country</th><th>IP</th></tr>';
-  $sql="SELECT id, dt, ref, ip, cn FROM $ReferZillaTableStat where (id_link=$id) order by dt desc";
+  $r.='<tr><th>Id</th><th>Time</th><th>Refer</th><th>Country</th><th>IP</th><th>Agent</th></tr>';
+  $sql="SELECT id, dt, ref, ip, cn, agent FROM $ReferZillaTableStat where (id_link=$id) order by dt desc";
   $stats = $wpdb->get_results($sql);
+  include_once("UserAgentParser.php");
   foreach($stats as $stat)
   {
-    $r.='<tr><td>'.$stat->id.'</td><td>'.$stat->dt.'</td><td>'.$stat->ref.'</td><td>'.$stat->cn.'</td><td>'.$stat->ip.'</td></tr>';
+    $a='Not Set';
+    if( !is_null($stat->agent) ) {
+      $ag=parse_user_agent($stat->agent);
+      $a=$ag['browser'].' '.$ag['platform'];
+    }
+    $ref=$stat->ref;
+    if (strlen($ref)>50) {$ref=substr($ref,0,50).'...';}
+    $r.='<tr><td>'.$stat->id.'</td><td>'.$stat->dt.'</td><td>'.$ref.'</td><td>'.$stat->cn.'</td><td>'.$stat->ip.'</td><td>'.$a.'</td></tr>';
   }
   $r.='</table>';
 
