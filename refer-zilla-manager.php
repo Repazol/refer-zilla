@@ -27,14 +27,15 @@ function ReferZillaManagerList()
    </style>
   ';
   $r.='<table style="">';
-  $r.='<tr><th>Link</th><th>Redirect to..</th><th>Href</th><th></th></tr>';
+  $r.='<tr><th>Link</th><th>Redirect to..</th><th>Href</th><th>Statistic</th><th></th></tr>';
 
   foreach($links as $link)
   {
     //$r.=print_r($link,true);
     $id='id='.$link->ID;
     $l=site_url().'/'.$link->link;
-    $r.='<tr><td><a href="'.$paged.'&do=editlink&'.$id.'">'.$link->link.'</a></td><td>'.$link->redirect.'</td><td>'.$l.'</td><td><a href="'.$paged.'&do=deletelink&'.$id.'">Delete</a></td></tr>';
+    $s='admin.php?page=refer-zillla-statistic&do=show-link&'.$id;
+    $r.='<tr><td><a href="'.$paged.'&do=editlink&'.$id.'">'.$link->link.'</a></td><td>'.$link->redirect.'</td><td>'.$l.'</td><td><a href="'.$s.'">Statistic</a></td><td><a href="'.$paged.'&do=deletelink&'.$id.'">Delete</a></td></tr>';
   }
   $r.='</table>';
 
@@ -89,11 +90,11 @@ function ReferZillaGenerateCountryForm($id,$id_c, $cn="", $rd="")
 function ReferZillaCountryList ($id)
 {  global $wpdb,$ReferZillaTable;
   $r='';
+  $r.='<h3>Redirect by country</h3>';
+  $r.='<table style="width:80%;border: 1px solid #000000;">';
+  $r.='<tr><th style="width:80px;">Country</th><th>Redirect</th></tr>';
   if ($id>0)
-  {  	$r.='<h3>Redirect by country</h3>';
-
-  	$r.='<table style="width:80%;border: 1px solid #000000;">';
-  	$r.='<tr><th style="width:80px;">Country</th><th>Redirect</th></tr>';
+  {
    $ReferZillaTableEx=$ReferZillaTable.'Ex';
    $d=$wpdb->get_results("SELECT ID, cn, redirect FROM $ReferZillaTableEx where (id_link=$id)");
    foreach($d as $link)
@@ -104,16 +105,16 @@ function ReferZillaCountryList ($id)
   	$r.='<tr><td colspan="3"><hr></td></tr>';
   	$r.=ReferZillaGenerateCountryForm($id,-1);
 
-  	$r.='</table>';
 
   }
+  $r.='</table>';
   return $r;
 
 
 }
 function ReferZillaManagerEdit ($id)
 {
-  global $wpdb,$ReferZillaTable;  $paged=$_SERVER['PHP_SELF'].'?refer-zilla/refer-zilla.php';//.$_SERVER['QUERY_STRING'];
+  global $wpdb,$ReferZillaTable,$reder_zilla_redirecttypes;  $paged=$_SERVER['PHP_SELF'].'?refer-zilla/refer-zilla.php';//.$_SERVER['QUERY_STRING'];
   if ($id==-1)
     {
       $r='Create new link<br>';
@@ -124,15 +125,25 @@ function ReferZillaManagerEdit ($id)
   $dt['id']=-1;
   $dt['link']="";
   $dt['redirect']="";
+  $dt['rt']=0;
   if ($id>0)
-    {      $d=$wpdb->get_results("SELECT ID, link, redirect FROM $ReferZillaTable where (id=$id)");
+    {      $d=$wpdb->get_results("SELECT ID, link, redirect,redirecttype FROM $ReferZillaTable where (id=$id)");
       if (isset($d[0]))
        {         $dt['id']=$d[0]->ID;
          $dt['link']=$d[0]->link;
          $dt['redirect']=$d[0]->redirect;
+         $dt['rt']=$d[0]->redirecttype;
       	}
     }
   //$r.='<pre>'.print_r($dt,true).'</pre>';
+  $rt='<select size="1" name="rt">';
+  foreach($reder_zilla_redirecttypes as $k =>$v)
+  {  	$rt.='<option value="'.$k.'"';
+  	if ($dt['rt']==$k) {$rt.=' selected';}
+  	$rt.='>'.$v.'</option>';
+  }
+  $rt.='</select>';
+
   $r.='<form action="'.$paged.'" method="get" name="form1">';
   $r.='<input name="do" type="hidden" value="linkpost">';
   $r.='<input name="page" type="hidden" value="refer-zilla/refer-zilla.php">';
@@ -142,21 +153,27 @@ function ReferZillaManagerEdit ($id)
   $r.='<table style="width:80%;">';
   $r.='<tr><td style="width:80px;">Link:</td><td><input style="width:80%;" name="link" type="text" value="'.$dt['link'].'"></td></tr>';
   $r.='<tr><td>Redirect to:</td><td><input style="width:80%;" name="redirect" type="text" value="'.$dt['redirect'].'"> *Default</td></tr>';
-  $r.='<tr><td><input type="submit" value="Save"></td></form><td><a href="'.$_SERVER['PHP_SELF'].'?page=refer-zilla%2Frefer-zilla.php">Cancel</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Code {REFER} - From where the user came, {COUNTRY} - User country, {IP} - User ip</td></tr>';
+  $r.='<tr><td>Redirect type:</td><td>'.$rt.'</td></tr>';
+  $r.='<tr><td><input type="submit" value="Save"></td></form><td><a href="'.$_SERVER['PHP_SELF'].'?page=refer-zilla%2Frefer-zilla.php">Cancel</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Code {REFER} - From where the user came, {COUNTRY} - User country, {IP} - User ip, {INPAGE} - Incoming links, {CLICK-ID} - Unique click ID</td></tr>';
   $r.='</table>';
   $r.=ReferZillaCountryList ($id);
   return $r;
+}
+function ClearLink($s)
+{
+   return preg_replace('/(?:[^-a-z0-9]|(?<=-)-+)/i', '', $s);
 }
 function ReferZillaManagerPost()
 {  global $ZillaName, $wpdb,$ReferZillaTable;
   $r='Link saved...<br>';
   $id=GetPostGetParam('id')+0;
-  $link=addslashes(GetPostGetParam('link'));
+  $link=ClearLink(GetPostGetParam('link'));
   $redirect=addslashes(GetPostGetParam('redirect'));
+  $rt=GetPostGetParam('rt')+0;
   if ($id==-1)
     {
-      $sql='insert into '.$ReferZillaTable.' (link, redirect) values ("'.$link.'","'.$redirect.'")';
-    }  else {        $sql='update '.$ReferZillaTable.' set link="'.$link.'", redirect="'.$redirect.'" where (id='.$id.')';
+      $sql='insert into '.$ReferZillaTable.' (link, redirect,redirecttype) values ("'.$link.'","'.$redirect.'",'.$rt.')';
+    }  else {        $sql='update '.$ReferZillaTable.' set link="'.$link.'", redirect="'.$redirect.'", redirecttype='.$rt.' where (id='.$id.')';
       }
   $d=$wpdb->query($sql);
   //$r.=$sql.'<br>';
@@ -235,7 +252,12 @@ function ReferZillaManagerDelcntok($id)
 function ReferZillaManager ()
 {
   global $ZillaName, $wpdb,$ReferZillaTable;
-  $r='<h2>'.$ZillaName.' Manager</h2>';
+  $r='';
+  if (get_option('permalink_structure') == '')
+  {
+   	$r.='<div id="message" class="error"><font size=+2>To use a plugin, you must enable permalink</font></div>';
+  }
+  $r.='<h2>'.$ZillaName.' Manager</h2>';
   $do=GetPostGetParam('do');
   $id=GetPostGetParam('id')+0;
   switch ($do) {    case 'linkpostcountry': {$r.=ReferZillaPostCountry($id);$r.=ReferZillaManagerEdit ($id);break;}
