@@ -17,7 +17,6 @@ Description: Track Zilla Old
     $text = str_replace( $quotes, '', $text );
     //$text = str_replace( $goodquotes, $repquotes, $text );
     //$text = ereg_replace(" +", " ", $text);
-
     return $text;
 }
 
